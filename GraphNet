@@ -1,1 +1,566 @@
-{"metadata":{"kernelspec":{"language":"python","display_name":"Python 3","name":"python3"},"language_info":{"name":"python","version":"3.11.11","mimetype":"text/x-python","codemirror_mode":{"name":"ipython","version":3},"pygments_lexer":"ipython3","nbconvert_exporter":"python","file_extension":".py"},"kaggle":{"accelerator":"none","dataSources":[{"sourceId":81000,"databundleVersionId":8812083,"sourceType":"competition"}],"dockerImageVersionId":31040,"isInternetEnabled":false,"language":"python","sourceType":"notebook","isGpuEnabled":false}},"nbformat_minor":4,"nbformat":4,"cells":[{"cell_type":"markdown","source":"# Introduction\n\nThis notebook will be dedicated to learning about GraphNets using the FutureCrop challenge!\n\nPrimary learning resource:\nhttps://gnn.seas.upenn.edu/lecture-11/\n","metadata":{}},{"cell_type":"code","source":"# This Python 3 environment comes with many helpful analytics libraries installed\n# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python\n# For example, here's several helpful packages to load\n\nimport numpy as np # linear algebra\nimport pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n\n# Input data files are available in the read-only \"../input/\" directory\n# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory\n\nimport os\nfor dirname, _, filenames in os.walk('/kaggle/input'):\n    for filename in filenames:\n        print(os.path.join(dirname, filename))\n\n# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using \"Save & Run All\" \n# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session","metadata":{"_uuid":"8f2839f25d086af736a60e9eeb907d3b93b6e0e5","_cell_guid":"b1076dfc-b9ad-4769-8c92-a6c4dae69d19","trusted":true},"outputs":[],"execution_count":null},{"cell_type":"code","source":"pr_wheat_train = pd.read_parquet('/kaggle/input/the-future-crop-challenge/pr_wheat_train.parquet')\npr_wheat_test = pd.read_parquet('/kaggle/input/the-future-crop-challenge/pr_wheat_test.parquet')","metadata":{"trusted":true},"outputs":[],"execution_count":null},{"cell_type":"code","source":"pr_wheat_train","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-05-21T17:51:55.552869Z","iopub.execute_input":"2025-05-21T17:51:55.553221Z","iopub.status.idle":"2025-05-21T17:51:55.708657Z","shell.execute_reply.started":"2025-05-21T17:51:55.553201Z","shell.execute_reply":"2025-05-21T17:51:55.707855Z"}},"outputs":[{"execution_count":12,"output_type":"execute_result","data":{"text/plain":"          crop   year     lon    lat variable         0         1         2  \\\nID                                                                            \n1040990  wheat  381.0 -123.25  44.75       pr  0.000011  0.000000  0.000000   \n1040991  wheat  381.0 -123.25  45.25       pr  0.000002  0.000000  0.000000   \n1040992  wheat  381.0 -123.25  45.75       pr  0.000001  0.000000  0.000000   \n1040993  wheat  381.0 -122.75  44.75       pr  0.000031  0.000003  0.000000   \n1040994  wheat  381.0 -122.75  45.25       pr  0.000004  0.000000  0.000000   \n...        ...    ...     ...    ...      ...       ...       ...       ...   \n1319732  wheat  419.0  152.25 -30.25       pr  0.000002  0.000000  0.000000   \n1319733  wheat  419.0  152.25 -29.25       pr  0.000000  0.000000  0.000000   \n1319734  wheat  419.0  152.25 -28.75       pr  0.000000  0.000000  0.000000   \n1319735  wheat  419.0  152.25 -27.75       pr  0.000000  0.000003  0.000002   \n1319736  wheat  419.0  152.75 -28.75       pr  0.000014  0.000000  0.000000   \n\n                3         4  ...       230       231       232       233  \\\nID                           ...                                           \n1040990  0.000000  0.000000  ...  0.000066  0.000000  0.000000  0.000064   \n1040991  0.000000  0.000000  ...  0.000073  0.000006  0.000000  0.000075   \n1040992  0.000000  0.000000  ...  0.000094  0.000017  0.000000  0.000079   \n1040993  0.000000  0.000001  ...  0.000079  0.000000  0.000000  0.000079   \n1040994  0.000000  0.000000  ...  0.000067  0.000011  0.000000  0.000057   \n...           ...       ...  ...       ...       ...       ...       ...   \n1319732  0.000000  0.000000  ...  0.000081  0.000000  0.000000  0.000079   \n1319733  0.000000  0.000000  ...  0.000043  0.000000  0.000000  0.000000   \n1319734  0.000002  0.000000  ...  0.000057  0.000000  0.000000  0.000000   \n1319735  0.000000  0.000000  ...  0.000002  0.000016  0.000076  0.000566   \n1319736  0.000002  0.000002  ...  0.000036  0.000000  0.000000  0.000000   \n\n              234       235       236      237  238       239  \nID                                                             \n1040990  0.000007  0.000000  0.000000  0.00000  0.0  0.000000  \n1040991  0.000001  0.000000  0.000000  0.00000  0.0  0.000000  \n1040992  0.000005  0.000000  0.000000  0.00000  0.0  0.000002  \n1040993  0.000000  0.000000  0.000000  0.00000  0.0  0.000000  \n1040994  0.000001  0.000000  0.000000  0.00000  0.0  0.000000  \n...           ...       ...       ...      ...  ...       ...  \n1319732  0.000129  0.000183  0.000000  0.00000  0.0  0.000074  \n1319733  0.000087  0.000167  0.000000  0.00000  0.0  0.000039  \n1319734  0.000131  0.000235  0.000000  0.00000  0.0  0.000032  \n1319735  0.000004  0.000169  0.000107  0.00003  0.0  0.000032  \n1319736  0.000189  0.000432  0.000002  0.00000  0.0  0.000000  \n\n[278747 rows x 245 columns]","text/html":"<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n        text-align: right;\n    }\n</style>\n<table border=\"1\" class=\"dataframe\">\n  <thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>crop</th>\n      <th>year</th>\n      <th>lon</th>\n      <th>lat</th>\n      <th>variable</th>\n      <th>0</th>\n      <th>1</th>\n      <th>2</th>\n      <th>3</th>\n      <th>4</th>\n      <th>...</th>\n      <th>230</th>\n      <th>231</th>\n      <th>232</th>\n      <th>233</th>\n      <th>234</th>\n      <th>235</th>\n      <th>236</th>\n      <th>237</th>\n      <th>238</th>\n      <th>239</th>\n    </tr>\n    <tr>\n      <th>ID</th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>1040990</th>\n      <td>wheat</td>\n      <td>381.0</td>\n      <td>-123.25</td>\n      <td>44.75</td>\n      <td>pr</td>\n      <td>0.000011</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000066</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000064</td>\n      <td>0.000007</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000000</td>\n    </tr>\n    <tr>\n      <th>1040991</th>\n      <td>wheat</td>\n      <td>381.0</td>\n      <td>-123.25</td>\n      <td>45.25</td>\n      <td>pr</td>\n      <td>0.000002</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000073</td>\n      <td>0.000006</td>\n      <td>0.000000</td>\n      <td>0.000075</td>\n      <td>0.000001</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000000</td>\n    </tr>\n    <tr>\n      <th>1040992</th>\n      <td>wheat</td>\n      <td>381.0</td>\n      <td>-123.25</td>\n      <td>45.75</td>\n      <td>pr</td>\n      <td>0.000001</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000094</td>\n      <td>0.000017</td>\n      <td>0.000000</td>\n      <td>0.000079</td>\n      <td>0.000005</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000002</td>\n    </tr>\n    <tr>\n      <th>1040993</th>\n      <td>wheat</td>\n      <td>381.0</td>\n      <td>-122.75</td>\n      <td>44.75</td>\n      <td>pr</td>\n      <td>0.000031</td>\n      <td>0.000003</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000001</td>\n      <td>...</td>\n      <td>0.000079</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000079</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000000</td>\n    </tr>\n    <tr>\n      <th>1040994</th>\n      <td>wheat</td>\n      <td>381.0</td>\n      <td>-122.75</td>\n      <td>45.25</td>\n      <td>pr</td>\n      <td>0.000004</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000067</td>\n      <td>0.000011</td>\n      <td>0.000000</td>\n      <td>0.000057</td>\n      <td>0.000001</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000000</td>\n    </tr>\n    <tr>\n      <th>...</th>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n    </tr>\n    <tr>\n      <th>1319732</th>\n      <td>wheat</td>\n      <td>419.0</td>\n      <td>152.25</td>\n      <td>-30.25</td>\n      <td>pr</td>\n      <td>0.000002</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000081</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000079</td>\n      <td>0.000129</td>\n      <td>0.000183</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000074</td>\n    </tr>\n    <tr>\n      <th>1319733</th>\n      <td>wheat</td>\n      <td>419.0</td>\n      <td>152.25</td>\n      <td>-29.25</td>\n      <td>pr</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000043</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000087</td>\n      <td>0.000167</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000039</td>\n    </tr>\n    <tr>\n      <th>1319734</th>\n      <td>wheat</td>\n      <td>419.0</td>\n      <td>152.25</td>\n      <td>-28.75</td>\n      <td>pr</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000002</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000057</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000131</td>\n      <td>0.000235</td>\n      <td>0.000000</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000032</td>\n    </tr>\n    <tr>\n      <th>1319735</th>\n      <td>wheat</td>\n      <td>419.0</td>\n      <td>152.25</td>\n      <td>-27.75</td>\n      <td>pr</td>\n      <td>0.000000</td>\n      <td>0.000003</td>\n      <td>0.000002</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>...</td>\n      <td>0.000002</td>\n      <td>0.000016</td>\n      <td>0.000076</td>\n      <td>0.000566</td>\n      <td>0.000004</td>\n      <td>0.000169</td>\n      <td>0.000107</td>\n      <td>0.00003</td>\n      <td>0.0</td>\n      <td>0.000032</td>\n    </tr>\n    <tr>\n      <th>1319736</th>\n      <td>wheat</td>\n      <td>419.0</td>\n      <td>152.75</td>\n      <td>-28.75</td>\n      <td>pr</td>\n      <td>0.000014</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000002</td>\n      <td>0.000002</td>\n      <td>...</td>\n      <td>0.000036</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000000</td>\n      <td>0.000189</td>\n      <td>0.000432</td>\n      <td>0.000002</td>\n      <td>0.00000</td>\n      <td>0.0</td>\n      <td>0.000000</td>\n    </tr>\n  </tbody>\n</table>\n<p>278747 rows × 245 columns</p>\n</div>"},"metadata":{}}],"execution_count":12},{"cell_type":"code","source":"len(pr_wheat_test.lon.unique())\n","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-05-21T18:25:02.968354Z","iopub.execute_input":"2025-05-21T18:25:02.968575Z","iopub.status.idle":"2025-05-21T18:25:02.978167Z","shell.execute_reply.started":"2025-05-21T18:25:02.968560Z","shell.execute_reply":"2025-05-21T18:25:02.977551Z"}},"outputs":[{"execution_count":17,"output_type":"execute_result","data":{"text/plain":"454"},"metadata":{}}],"execution_count":17},{"cell_type":"code","source":"454*167","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-05-21T18:25:08.922642Z","iopub.execute_input":"2025-05-21T18:25:08.922851Z","iopub.status.idle":"2025-05-21T18:25:08.927668Z","shell.execute_reply.started":"2025-05-21T18:25:08.922837Z","shell.execute_reply":"2025-05-21T18:25:08.926949Z"}},"outputs":[{"execution_count":18,"output_type":"execute_result","data":{"text/plain":"75818"},"metadata":{}}],"execution_count":18},{"cell_type":"code","source":"","metadata":{"trusted":true},"outputs":[],"execution_count":null}]}
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "a62479b8",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003738,
+     "end_time": "2025-07-20T14:16:30.399546",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:30.395808",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Introduction\n",
+    "\n",
+    "This notebook will be dedicated to learning about GraphNets using the FutureCrop challenge!\n",
+    "\n",
+    "Primary learning resource:\n",
+    "https://gnn.seas.upenn.edu/lecture-11/\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "88dd3f7d",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2025-07-20T14:16:30.407133Z",
+     "iopub.status.busy": "2025-07-20T14:16:30.406747Z",
+     "iopub.status.idle": "2025-07-20T14:16:32.287959Z",
+     "shell.execute_reply": "2025-07-20T14:16:32.286911Z"
+    },
+    "papermill": {
+     "duration": 1.886699,
+     "end_time": "2025-07-20T14:16:32.289565",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:30.402866",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "/kaggle/input/the-future-crop-challenge/pr_wheat_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmax_maize_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/sample_submission.csv\n",
+      "/kaggle/input/the-future-crop-challenge/soil_co2_wheat_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tas_wheat_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/rsds_maize_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmin_wheat_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmax_wheat_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/rsds_maize_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/soil_co2_maize_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/train_solutions_maize.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/pr_maize_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tas_wheat_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmax_maize_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/pr_maize_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/pr_wheat_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/soil_co2_maize_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmin_maize_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/train_solutions_wheat.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tas_maize_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/soil_co2_wheat_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmin_maize_train.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/rsds_wheat_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmin_wheat_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tas_maize_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/tasmax_wheat_test.parquet\n",
+      "/kaggle/input/the-future-crop-challenge/rsds_wheat_train.parquet\n"
+     ]
+    }
+   ],
+   "source": [
+    "# This Python 3 environment comes with many helpful analytics libraries installed\n",
+    "# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python\n",
+    "# For example, here's several helpful packages to load\n",
+    "\n",
+    "import numpy as np # linear algebra\n",
+    "import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n",
+    "\n",
+    "# Input data files are available in the read-only \"../input/\" directory\n",
+    "# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory\n",
+    "\n",
+    "import os\n",
+    "for dirname, _, filenames in os.walk('/kaggle/input'):\n",
+    "    for filename in filenames:\n",
+    "        print(os.path.join(dirname, filename))\n",
+    "\n",
+    "# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using \"Save & Run All\" \n",
+    "# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "afba4ac1",
+   "metadata": {
+    "papermill": {
+     "duration": 0.002353,
+     "end_time": "2025-07-20T14:16:32.294712",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:32.292359",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Simple RNN\n",
+    "\n",
+    "A good place to start is to train a very simple RNN on a small bit of the data.\n",
+    "\n",
+    "Can we go from "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "5e7c041e",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-07-20T14:16:32.301028Z",
+     "iopub.status.busy": "2025-07-20T14:16:32.300651Z",
+     "iopub.status.idle": "2025-07-20T14:16:38.532690Z",
+     "shell.execute_reply": "2025-07-20T14:16:38.531603Z"
+    },
+    "papermill": {
+     "duration": 6.236906,
+     "end_time": "2025-07-20T14:16:38.534127",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:32.297221",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Running on cpu\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Setup #\n",
+    "import os\n",
+    "import copy\n",
+    "import random\n",
+    "from tqdm import tqdm\n",
+    "import torch\n",
+    "from torch import nn\n",
+    "from torch.utils.data import DataLoader, Dataset\n",
+    "from torch.autograd import Variable\n",
+    "import torch.nn.functional as F\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')\n",
+    "DATA_DIR = r'/kaggle/input/the-future-crop-challenge'\n",
+    "print(f'Running on {device}')\n",
+    "\n",
+    "def setup_seed(seed):\n",
+    "    torch.manual_seed(seed)\n",
+    "    torch.cuda.manual_seed_all(seed)\n",
+    "    np.random.seed(seed)\n",
+    "    random.seed(seed)\n",
+    "    torch.backends.cudnn.deterministic = True\n",
+    "    return\n",
+    "\n",
+    "setup_seed(2025) #set seed to current year"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "e5c5d40c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-07-20T14:16:38.541467Z",
+     "iopub.status.busy": "2025-07-20T14:16:38.540637Z",
+     "iopub.status.idle": "2025-07-20T14:16:38.558538Z",
+     "shell.execute_reply": "2025-07-20T14:16:38.557632Z"
+    },
+    "papermill": {
+     "duration": 0.022907,
+     "end_time": "2025-07-20T14:16:38.559943",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:38.537036",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "## Set up dataset with pytorch ##\n",
+    "class ClimateDataset(Dataset):\n",
+    "    \"\"\"\n",
+    "    The ClimateDataset class provides a convenient way for acessing, merging and scaling parquet data. \n",
+    "    This is used in the main training loop to access features and target variables.\n",
+    "    \"\"\"\n",
+    "    def __init__(self, crop: str, mode: str, data_dir: str, scalers: list = None):\n",
+    "        self.tasmax = pd.read_parquet(os.path.join(data_dir, f\"tasmax_{crop}_{mode}.parquet\"))\n",
+    "        self.tasmin = pd.read_parquet(os.path.join(data_dir, f\"tasmin_{crop}_{mode}.parquet\"))\n",
+    "        # self.tas = pd.read_parquet(os.path.join(data_dir, f\"tas_{crop}_{mode}.parquet\"))\n",
+    "        self.pr = pd.read_parquet(os.path.join(data_dir, f\"pr_{crop}_{mode}.parquet\"))\n",
+    "        self.rsds = pd.read_parquet(os.path.join(data_dir, f\"rsds_{crop}_{mode}.parquet\"))\n",
+    "        self.soil_co2 = pd.read_parquet(os.path.join(data_dir, f\"soil_co2_{crop}_{mode}.parquet\"))\n",
+    "        \n",
+    "        if mode == 'train':\n",
+    "            self.yield_ = pd.read_parquet(os.path.join(data_dir, f\"{mode}_solutions_{crop}.parquet\"))\n",
+    "        else:\n",
+    "            self.yield_ = None\n",
+    "\n",
+    "        if scalers is None:\n",
+    "            self._init_scalers()\n",
+    "        else:\n",
+    "            self.scaler_climate, self.scaler_soil, self.scaler_yield = scalers\n",
+    "        self._check_data([self.tasmax, self.tasmin, self.pr, self.rsds, self.soil_co2], self.yield_)\n",
+    "\n",
+    "    def __getitem__(self, index):\n",
+    "        # 240x4 climate matrix per location/year (features in last dimension by convention) + cumulative rsds\n",
+    "        # first 5 indices are categorical, first 30 entries are before seeding, last 210 are after.\n",
+    "        climate = np.vstack([\n",
+    "            self.tasmax.iloc[index, 35:].astype(np.float32), \n",
+    "            self.tasmin.iloc[index, 35:].astype(np.float32),\n",
+    "            # self.tas.iloc[index, 35:].astype(np.float32),\n",
+    "            self.pr.iloc[index, 35:].astype(np.float32),\n",
+    "            self.rsds.iloc[index, 35:].astype(np.float32),\n",
+    "            np.cumsum(self.rsds.iloc[index, 35:]).astype(np.float32),\n",
+    "        ]).T\n",
+    "\n",
+    "        # Fixed soil properties per location/year\n",
+    "        soil = self.soil_co2.iloc[index][['lon','lat','co2', 'nitrogen']].astype(np.float32)\n",
+    "        texture = self.soil_co2.iloc[index][['texture_class']].values.astype(np.int64)\n",
+    "        id = soil.name\n",
+    "        soil = soil.values\n",
+    "\n",
+    "        # Yield estimated by process model\n",
+    "        if self.yield_ is not None:\n",
+    "            yield_ = self.yield_.iloc[index].astype(np.float32).values\n",
+    "        else:\n",
+    "            yield_ = []\n",
+    "\n",
+    "        climate_scaler = self.scaler_climate.transform(climate)\n",
+    "        soil = self.scaler_soil.transform(soil.reshape(1, -1)).reshape(-1)\n",
+    "        texture = F.one_hot(torch.from_numpy((texture-1).astype(np.int64)),13)[0].to(torch.float32)\n",
+    "        soil_texture = torch.concat([torch.tensor(soil),texture])\n",
+    "        # print(yield_)\n",
+    "        return torch.tensor(climate), torch.tensor(climate_scaler), soil_texture, torch.tensor(yield_), id\n",
+    "\n",
+    "    def __len__(self):\n",
+    "        return self.tasmax.shape[0]\n",
+    "\n",
+    "    def _init_scalers(self):\n",
+    "        # Draw random sample from climate data to estimate distribution moments for scaler.\n",
+    "        climate_sample = np.vstack([\n",
+    "            self.tasmax.sample(1000).iloc[:, 5:].values.flatten(), \n",
+    "            self.tasmin.sample(1000).iloc[:, 5:].values.flatten(),\n",
+    "            # self.tas.sample(1000).iloc[:, 5:].values.flatten(),\n",
+    "            self.pr.sample(1000).iloc[:, 5:].values.flatten(),\n",
+    "            self.rsds.sample(1000).iloc[:, 5:].values.flatten(),\n",
+    "            np.cumsum(self.rsds.sample(1000).iloc[:, 5:],1).values.flatten(),\n",
+    "        ]).T\n",
+    "        self.scaler_climate = StandardScaler()\n",
+    "        self.scaler_climate.fit(climate_sample)\n",
+    "        # Scaler for fixed soil properties\n",
+    "        self.scaler_soil = StandardScaler()\n",
+    "        self.scaler_soil.fit(self.soil_co2[['lon','lat','co2', 'nitrogen']].values)\n",
+    "\n",
+    "        # Scaler for yield\n",
+    "        self.scaler_yield = StandardScaler()\n",
+    "        if self.yield_ is not None:\n",
+    "            self.scaler_yield.fit(self.yield_.values)\n",
+    "\n",
+    "    def _check_data(self, climate: list, yield_: pd.DataFrame) -> bool:\n",
+    "        # Check for matching year, lon, lat columns\n",
+    "        for i in range(1, len(climate)):\n",
+    "            assert np.all(climate[0][['year', 'lon', 'lat']] == climate[i][['year', 'lon', 'lat']])\n",
+    "        # Check label for matching length\n",
+    "        assert yield_ is None or climate[0].shape[0] == yield_.shape[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "ede4ca3e",
+   "metadata": {
+    "collapsed": true,
+    "execution": {
+     "iopub.execute_input": "2025-07-20T12:35:53.914410Z",
+     "iopub.status.busy": "2025-07-20T12:35:53.913931Z",
+     "iopub.status.idle": "2025-07-20T12:36:00.017897Z",
+     "shell.execute_reply": "2025-07-20T12:36:00.016174Z",
+     "shell.execute_reply.started": "2025-07-20T12:35:53.914376Z"
+    },
+    "jupyter": {
+     "outputs_hidden": true
+    },
+    "papermill": {
+     "duration": 0.002386,
+     "end_time": "2025-07-20T14:16:38.565114",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:38.562728",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "b362cc13",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-07-20T14:16:38.571352Z",
+     "iopub.status.busy": "2025-07-20T14:16:38.571014Z",
+     "iopub.status.idle": "2025-07-20T14:16:38.578909Z",
+     "shell.execute_reply": "2025-07-20T14:16:38.578144Z"
+    },
+    "papermill": {
+     "duration": 0.012503,
+     "end_time": "2025-07-20T14:16:38.580144",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:38.567641",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# define model #\n",
+    "\n",
+    "class PredictiveRNN(nn.Module):\n",
+    "    def __init__(self, n_inputs, n_hidden, n_targets, n_layers, nonlinearity = 'tanh'):\n",
+    "        super(PredictiveRNN, self).__init__()\n",
+    "        self.n_hidden = n_hidden\n",
+    "        self.n_inputs = n_inputs\n",
+    "        self.n_targets = n_targets\n",
+    "\n",
+    "        self.rnn = nn.RNN(n_inputs, n_hidden, n_layers, nonlinearity=nonlinearity, \n",
+    "                          batch_first = True)\n",
+    "        self.encoder = nn.Linear(n_inputs, n_hidden)\n",
+    "        self.decoder = nn.Linear(n_hidden, n_targets)\n",
+    "        self.mse = nn.MSELoss()\n",
+    "\n",
+    "        #initialise weights for improved gradient descent\n",
+    "        for name, param in self.named_parameters():\n",
+    "            if 'weight' in name:\n",
+    "                if nonlinearity == 'tanh':\n",
+    "                    nn.init.xavier_uniform_(param)\n",
+    "                elif nonlinearity == 'relu':\n",
+    "                    nn.init.kaiming_uniform_(param)           \n",
+    "        \n",
+    "    def forward(self, inputs):\n",
+    "        #we want to initialise the hidden state with encoder weights rather than 0s\n",
+    "        #these are esentially context-setting weights.\n",
+    "        h0 = self.encoder(inputs[:,0,:])\n",
+    "        h0 = h0.unsqueeze(0) #(1,batch_size,1)\n",
+    "        rnn_out, hidden = self.rnn(inputs, h0)\n",
+    "        predictions = self.decoder(rnn_out)\n",
+    "\n",
+    "        return predictions\n",
+    "\n",
+    "    def compute_losses(self, predictions, targets):\n",
+    "        pred_loss = self.mse(predictions[:,:,:5], targets[:,:,:5])\n",
+    "        yield_loss = self.mse(predictions[:,-1,-1], targets[:,-1,-1])\n",
+    "        return pred_loss, yield_loss"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "8f2448c5",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-07-20T14:16:38.586517Z",
+     "iopub.status.busy": "2025-07-20T14:16:38.586170Z",
+     "iopub.status.idle": "2025-07-20T14:17:17.650310Z",
+     "shell.execute_reply": "2025-07-20T14:17:17.649489Z"
+    },
+    "papermill": {
+     "duration": 39.069114,
+     "end_time": "2025-07-20T14:17:17.652058",
+     "exception": false,
+     "start_time": "2025-07-20T14:16:38.582944",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "## Loading data ## (may take a while)\n",
+    "crop = 'wheat'\n",
+    "ds_train = ClimateDataset(crop, 'train', data_dir=DATA_DIR)\n",
+    "ds_test = ClimateDataset(crop, 'test', data_dir=DATA_DIR, scalers=(ds_train.scaler_climate, ds_train.scaler_soil, ds_train.scaler_yield))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "ac852ada",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-07-20T14:17:17.659312Z",
+     "iopub.status.busy": "2025-07-20T14:17:17.658461Z",
+     "iopub.status.idle": "2025-07-20T14:41:01.713009Z",
+     "shell.execute_reply": "2025-07-20T14:41:01.711970Z"
+    },
+    "papermill": {
+     "duration": 1424.060074,
+     "end_time": "2025-07-20T14:41:01.715017",
+     "exception": false,
+     "start_time": "2025-07-20T14:17:17.654943",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2788it [23:38,  1.97it/s]"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Prediction loss: 0.217, yield loss: 1.406\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Training loop #\n",
+    "\n",
+    "# global variables / options #\n",
+    "BATCH_SIZE = 200\n",
+    "N_EPOCHS = 1\n",
+    "LEARNING_RATE = 3e-4\n",
+    "N_HIDDEN = 256\n",
+    "N_LAYERS = 1\n",
+    "N_INPUT = 22\n",
+    "N_TARGET = 6\n",
+    "\n",
+    "# set up model and optimizer # \n",
+    "model = PredictiveRNN(N_INPUT, N_HIDDEN, N_TARGET,N_LAYERS,\n",
+    "                     nonlinearity = 'tanh')\n",
+    "optimizer = torch.optim.Adam(model.parameters(), lr = LEARNING_RATE)\n",
+    "\n",
+    "# prepare data loader and start training loop #\n",
+    "yield_losses = []\n",
+    "prediction_losses = []\n",
+    "\n",
+    "train_loader = DataLoader(ds_train, batch_size= 100, shuffle=True)\n",
+    "for epoch in range(N_EPOCHS):\n",
+    "    for i, (_, climate, soil, true_yield, _) in tqdm(enumerate(train_loader)):\n",
+    "        #Reshape data for predictive inputs\n",
+    "        input_climate = climate[:,0:-2,:] #(n_batch, seq_len, 5)\n",
+    "        input_soil = soil[:,None,:].repeat(1,input_climate.shape[1],1) #(n_batch,seq_len,17)\n",
+    "        inputs = torch.concat([input_climate,input_soil],axis=-1) #(n_batch,seq_len,22)\n",
+    "        \n",
+    "        target_climate = climate[:,1:-1,:] #(n_batch,seq_len,5)\n",
+    "        target_yield = true_yield[:,None,:].repeat(1,input_climate.shape[1],1) #(n_batch,seq_len,1)\n",
+    "        targets = torch.concat([target_climate,target_yield],axis=-1) #(n_batch,seq_len,6)\n",
+    "        #move to device \n",
+    "        inputs = inputs.to(device)\n",
+    "        targets = targets.to(device)\n",
+    "        #reset optimiser\n",
+    "        optimizer.zero_grad()\n",
+    "        #run data through model and backprop losses\n",
+    "        predictions = model(inputs)\n",
+    "        pred_loss, yield_loss = model.compute_losses(predictions, targets)\n",
+    "        loss = pred_loss+yield_loss\n",
+    "        loss.backward()\n",
+    "        optimizer.step()\n",
+    "\n",
+    "        #append losses\n",
+    "        yield_losses.append(yield_loss.detach().cpu().item())\n",
+    "        prediction_losses.append(pred_loss.detach().cpu().item())\n",
+    "\n",
+    "    print(f'Prediction loss: {round(prediction_losses[-1],3)}, yield loss: {round(yield_losses[-1],3)}')\n",
+    "    \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f63d1740",
+   "metadata": {
+    "papermill": {
+     "duration": 0.128584,
+     "end_time": "2025-07-20T14:41:01.978574",
+     "exception": false,
+     "start_time": "2025-07-20T14:41:01.849990",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "databundleVersionId": 8812083,
+     "sourceId": 81000,
+     "sourceType": "competition"
+    }
+   ],
+   "dockerImageVersionId": 31040,
+   "isGpuEnabled": false,
+   "isInternetEnabled": false,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.11"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 1480.279014,
+   "end_time": "2025-07-20T14:41:05.640895",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2025-07-20T14:16:25.361881",
+   "version": "2.6.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
