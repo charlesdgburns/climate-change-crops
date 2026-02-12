@@ -22,6 +22,7 @@ This performs surprisingly poorly, despite training with dropout [(Srivastava et
 ### Location-specific deep learning
 Going back to the data, I noticed that there was a lot of variability in the mean crop yield between locations. This variance is also not geographically driven, as it can be a political decision to support farming of certain crops in specific countries with sharp borders.
 <img width="880" height="587" alt="image" src="https://github.com/user-attachments/assets/cde3f4b2-7c90-44c6-b600-2d7cc7b10fe1" />
+
 The idea was then to simply do deep learning over the entire sequence of wheather data per crop per location, extracting conditional patterns to predict the yield of each year. 
 This generalises slightly better than the mean per location per crop, but still suffers from overfitting by essentially performing regression onto the training data.
 
