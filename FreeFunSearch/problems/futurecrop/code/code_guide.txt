@@ -1,0 +1,30 @@
+**Code Generation Guidelines:**
+* Import any packages you use (`import numpy as np`).
+* Do not include any text other than the code.
+* Ensure all free parameters are numeric, not strings.
+* Output only a single improved program, which must have two functions named
+  exactly `model` and `estimate_params`.
+* `model(x, params)` takes the input dict `x` and a parameter vector `params`,
+  and returns a numpy array of shape `(N,)` with predicted yields
+  (`dtype` float, values roughly matching the range of `y`).
+* `estimate_params(x, y)` takes inputs and observed outputs, and returns an
+  initial parameter guess as a numpy array of floats. Do not use curve_fit,
+  minimize, or any iterative fitting — this is a starting point for a
+  gradient-based optimizer that fits the parameters afterwards.
+* `x` is a dict with exactly two keys: `x["climate"]` (float array `(N, 240, 5)`)
+  and `x["meta"]` (float array `(N, 21)`). **Index the fixed channel/column
+  layout** given in the problem description — the channel order of `climate` is
+  `[:, :, 0]` tasmax (°C), `[:, :, 1]` tasmin (°C), `[:, :, 2]` pr (mm/day),
+  `[:, :, 3]` rsds (W/m²), `[:, :, 4]` cumulative rsds. `meta` columns follow
+  the fixed table in the problem description (cell_id, lon, lat, year, co2,
+  nitrogen, 13 texture one-hot, crop, yield_train_cell_mean).
+* Use only vectorised numpy operations over the `(N, 240, 5)` arrays —
+  `np.sum`/`np.mean`/`np.maximum`/`np.minimum`/`np.log`/`np.exp`/`np.tanh`
+  along the day axis (axis 1). Never loop over N.
+* Prefer smooth, saturating functions (tanh, sigmoid, log, exp) over hard
+  switches and unbounded linear terms — the parameter fitter is gradient-based.
+* Keep the number of parameters small (≤ 8) so the fitter stays fast.
+* If the model is `yield_train_cell_mean (meta[:, 20])` plus response terms,
+  first compute per-season aggregates from `x["climate"]`, then combine them.
+* The score penalises code complexity, so write the simplest program that is
+  better than the parents; do not copy unused code.

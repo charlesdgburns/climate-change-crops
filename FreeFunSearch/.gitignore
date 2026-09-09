@@ -1,3 +1,16 @@
+#funsearch outputs
+problems/*/funsearch
+
+# Environments
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -134,15 +147,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.envrc
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -191,9 +195,6 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
-# sandbox benchmark artifacts (regenerable)
-sandbox/results/
-
 # PyPI configuration file
 .pypirc
 
@@ -208,10 +209,3 @@ sandbox/results/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-
-# Local raw competition data (parquet, ~15 GB)
-/data/
-
-# FreeFunSearch prepared caches (regenerable via prepare_data.py)
-FreeFunSearch/problems/futurecrop/data/
-FreeFunSearch/funsearch.egg-info/

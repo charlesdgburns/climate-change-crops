@@ -1,0 +1,81 @@
+# Future Crop Challenge — problem description
+
+You are searching for a **yield-production function** for the Kaggle Future Crop
+Challenge: predict regional crop yields (wheat and maize) under projected
+climate change. We have 39 years of historical daily climate, and the test set
+covers 78 *future* years of climate-model projections. The driving signal we
+want to discover is the *within-location* response of yield to weather and
+atmospheric CO2.
+
+## Input `x` (a dict, shared by model() and estimate_params())
+
+- `x["climate"]` : `(N, 240, 5)` float32 — one 240-day growing-season series per
+  row. Channel order along the last axis:
+    0. `tasmax` daily max temperature (°C)
+    1. `tasmin` daily min temperature (°C)
+    2. `pr` daily precipitation (mm/day)
+    3. `rsds` daily surface downwelling solar radiation (W/m²)
+    4. `cumulative_rsds` running cumulative sum of rsds over the season
+- `x["meta"]` : `(N, 21)` float32 — per-row metadata. Column order:
+    0. `cell_id`      (integer location id, constant per geospatial cell)
+    1. `lon`, 2. `lat`   (geographic coordinates, degrees)
+    3. `year`         (integer; train years 381–409, validation 410–419)
+    4. `co2`          (annual atmospheric CO2, ppm — rising over years,
+                      currently 340–415 ppm in training; test goes higher)
+    5. `nitrogen`     (nitrogen applied, kg/ha)
+    6..18 texture one-hot (13 soil texture classes, exactly one is 1.0)
+    19. `crop`        (0 = wheat, 1 = maize)
+    20. `yield_train_cell_mean` (the per-location TRAIN mean yield — the
+        competition baseline. Always available at fit & eval time.)
+
+`y` is the simulated yield (the quantity to predict). One row per
+location-year.
+
+## How your program is used (evaluation)
+
+estimate_params(x, y) is called once to produce a starting parameter vector; a
+gradient-based optimizer (L-BFGS-B, finite differences) then fits the
+parameters to a subsample of the training rows by least squares, and the fitted
+model is evaluated on the *validation* years (410–419, never seen during
+fitting; weather and CO2 are shifted for them).
+
+Keep `model()` smooth and vectorised over arrays of size (N, 240, 5) — python
+loops over N are not acceptable; `np.mean` / `np.sum` / `np.maximum` /
+`np.log` / `np.tanh` / `np.exp` over the 240-day axis are. Parameter counts
+above ~8 slow the fitting and add a complexity penalty.
+
+## Scoring (LOWER is better)
+
+The primary metric is the **median per-cell coefficient of determination R²**
+on the validation years: for each location, R² between predicted and actual
+yield across its validation years (captures *weather-driven interannual
+variability*). Score =
+`100 × (1 − median_per-cell_R²) + 0.01 × n_params + 0.001 × code_depth`.
+Predicting the constant per-location baselines (return column 20) therefore
+scores ≈ 100–116 and is the bar you must beat; the further the per-cell R² goes
+above 0, the smaller (better) the score.
+
+## What makes a good program here
+
+- The **spatial level differences are already handled** by column 20: the
+  per-location train mean. Add *response terms* on top of it rather than trying
+  to reconstruct location effects from scratch.
+- Strong mechanistic priors for the 240-day series:
+  - **Heat**: growing degree days above a base temperature (e.g. 8 °C),
+    and stress from days with tasmax above thresholds (≈ 27–34 °C).
+  - **Water**: total or seasonal precipitation, water-stress indicators
+    (dry spells, days below a rainfall threshold).
+  - **Radiation**: total season rsds — enough for carbon fixation, and it is
+    strongly collinear with temperature and water.
+  - **CO2**: log-type fertilization response (wheat and maize differ; CO2
+    climbs far beyond training range in the future, so prefer saturating
+    forms over linear).
+  - **Distinct crop behavior**: wheat and maize have different base
+    temperatures, heat tolerance, and CO2 response — consider using the crop
+    indicator or texture one-hot to split/condition parameters.
+- Keep functions smooth and parameter-limited; the optimizer fits parameters,
+  so `estimate_params()` only needs a sensible starting guess (no fitting code
+  in it — that is done for you).
+- Sanity: yields are positive scalars; wildly extrapolating predictions
+  destroy the R² as badly as missing the trend. Prefer bounded/saturating
+  terms to unbounded linear explosions.
