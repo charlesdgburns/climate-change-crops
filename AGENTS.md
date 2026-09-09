@@ -35,6 +35,9 @@ Key analysis: `sandbox/ANALYSIS.md` — why per-cell held-out R² is negative (l
 | `geospatial_DNN.ipynb` | Per-location deep learning |
 | `PredNet.ipynb` | PredNet-inspired architecture |
 | `GraphNet` | Graph neural network (missing `.ipynb` extension — treat as notebook) |
+| `submit.ipynb` | Legacy Kaggle submission (wheat `13` / maize `06`; superseded by the two explicit notebooks below) |
+| `submission_baseline_13_06.ipynb` | **Kaggle submission — weather-only arm**: wheat `13`, maize `06`, per-cell closed-form ridge |
+| `submission_co2_24_06.ipynb` | **Kaggle submission — literature-CO₂ arm**: wheat `24` (13-core × fixed saturating CO₂), maize `06`; only the wheat block differs from the baseline arm |
 
 ## FreeFunSearch pipeline
 
@@ -79,4 +82,4 @@ Targets: `train_solutions_wheat.parquet` and `train_solutions_maize.parquet`.
 
 ### Data path convention
 
-Notebooks were written for Kaggle (`/kaggle/input/the-future-crop-challenge/`). When running locally, use the `data/` directory instead. The `DATA_DIR` variable in each notebook must be pointed at `data/`. The FreeFunSearch pipeline reads `data/` via `DEFAULT_DATA_DIR` in `prepare_data.py`. Train years are 381–419; test years are 420–497 (CO₂ rises to ~560 ppm in test, beyond training range).
+Notebooks were written for Kaggle (`/kaggle/input/the-future-crop-challenge/`). When running locally, use the `data/` directory instead. The `DATA_DIR` variable in each notebook must be pointed at `data/`. The FreeFunSearch pipeline reads `data/` via `DEFAULT_DATA_DIR` in `prepare_data.py`. Train years are 381–419; test years are 420–497 (CO₂ rises to ~1108 ppm in test — see `sandbox/CO2_LIT.md`; the "~560 ppm" claim is wrong).
