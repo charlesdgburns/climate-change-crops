@@ -50,6 +50,15 @@ low-threshold flowering heat (hdd≥22/26, days ~121–150), wheat high-threshol
 grain-fill heat, saturating N, no soil-memory terms. Run:
 `cd sandbox && python3 fingerprint.py && python3 fingerprint_match.py`.
 
+**Literal-simulator comparison** (`sim_match.py` + `sim/core.py` +
+`sim/families.py`, all params fixed from literature): runs CERES/STICS
+(supply/PT) and APSIM/EPIC/LPJmL (demand/VPD) process models literally, fits
+only a per-cell affine, and judges each family on held-out R² + a
+fingerprint-of-simulator signature (strict dual criterion ≥0.10 margin).
+Verdict: **NO WINNER** (CERES/STICS directionally favored for maize but tied;
+wheat blank) → submissions unchanged. Run:
+`cd sandbox && python3 sim_match.py --crops wheat maize --n-cells 500`.
+
 ## FreeFunSearch pipeline
 
 `FreeFunSearch/` contains the FunSearch engine (`FunSearch/`) and the crop problem definition (`problems/futurecrop/`). Twenty generations of evolution are configured via `PROBLEM_PROFILE` in `FunSearch/search_loop.py` (min = quick smoke test, full = real run).

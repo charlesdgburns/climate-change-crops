@@ -463,3 +463,37 @@ pairwise-majority, era gate `era_gate_maize_flowering.py`):
 Verdict: the strong (replace-heat30) version of the B-track's #1 unused
 insight is not supported; the additive version is not distinguishable from
 `06`. Full detail in `GENESIS.md` §5.
+
+## 11. Literal simulator comparison (B-track issue: can a process model beat the fingerprints?)
+
+After the literature-CO₂ arm (`024`) improved the leaderboard, the question
+became "which *actual* process model could justify an 1100 ppm CO₂ response?"
+We ran the top-5 families **literally**: simplified CERES/STICS (PT-PET,
+supply water channel, weak memory) and APSIM/EPIC/LPJmL (VPD-driven PET,
+demand water channel, strong soil memory), **all parameters fixed from the
+literature** (`sim/core.py` + `sim/families.py`). Per cell the only fit is a
+2-param affine. Protocol is the per-cell 381–411 / 412–419 split. Strict
+adoption rule (user-set): margin ≥ 0.10 on **both** held-out R² **and** the
+fingerprint-of-simulator signature.
+
+**Result — NO WINNER for either crop** (`results/sim_match_{crop}.md`),
+consistent with the §10 verdict:
+
+- **Maize** favors the supply/radiation group on every leg: held-out R²
+  ceres −0.284 vs apsim −0.517 (ceres pairwise win 0.656, p≈2e-15); direct
+  corr(obs, sim) ceres +0.164 / 75% cells vs apsim +0.044 / 63%; fingerprint
+  signature distance ceres 0.090 (closest). But ceres vs stics margins are
+  +0.003 (R²) / +0.030 (signature) — the CERES/STICS tie persists.
+- **Wheat** is a blank: all families near noise (supply corr ~+0.06, demand
+  ~−0.08), matching the §4 finding that wheat has no separable weather
+  channel for these features.
+- Interpretation: the observed generator lives in the CERES/STICS water
+  (supply, radiation-PET) space; VPD-demand + soil-memory simulators are
+  measurably worse for maize. The tie between CERES and STICS that
+  fingerprints could not break (§10) stays intact under literal simulation.
+
+**Action taken:** no submission change. `06` (maize) and `13`/`24` (wheat)
+remain the portfolio; `24` stays the CO₂ form justified by `CO2_LIT.md` for
+the 1100 ppm test years. The simulator harness is preserved as a reversible,
+extensible test if the generator is ever revealed or a new structural split
+(finer water routing, phenology clock) is proposed.
