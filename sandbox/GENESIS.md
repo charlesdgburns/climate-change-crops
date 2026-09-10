@@ -92,15 +92,30 @@ The incumbent submission cores already embody the strongest findings:
 - maize `06` (VPD + pr + heat30) matches maize's VPD-demand channel.
 The single most actionable (unexploited) insight for a future candidate: a
 **maize low-threshold flowering heat** term (hdd≥22/26, days ~120-150) is the
-strongest unused signature. If pursued, it must clear the standard gates
-(benchmark, pairwise-majority, era-stability) before touching the submission
-portfolio.
+strongest unused signature. It was pursued (candidates 28–32) and **does not
+beat 06** on the benchmark + era gate — see below.
 
-## 5. What would falsify this
+## 5. What would falsify this (and what the maize-heat test found)
 
 - A maize candidate with hdd≥22/26 + mid-window weighting beating 06 on
   benchmark + era gate would confirm the F1/F2 maize heat finding.
-- A family would become a distinct winner only if the CNES/STICS tie
+  **Tested (programs 28–32, 1000 cells/crop): NOT confirmed.**
+  - Replacement variants (28 window-only hdd22, 29 full-window hdd22,
+    30 window-only count≥26, 31 full-window hdd26) all **lose** to 06 on
+    median per-cell R² and pairwise majority (pct-better 37–43%, median
+    δR² −0.03…−0.06). The F2 hdd22 win was measured as a *lone feature*
+    (intercept-only baseline); inside 06's GDD+VPD+pr package the
+    low-threshold hdd is redundant with GDD and the windowed tanh shape
+    underperforms 06's linear heat30/8.
+  - Only the **additive** variant (32 = 06 + thin flower-heat term) passes:
+    pairwise 51.8% better on bench (mean δR² +0.002), era gate PASS (55.0%
+    better, mean δR² +0.001). The delta is within noise vs the incumbent;
+    a submission change is not justified (keeps an extra parameter for ~0).
+  - **Falsification verdict:** the strong version of the maize flowering-heat
+    claim (replace heat30 with low-threshold flowering hdd) is falsified by
+    the benchmark. The additive version survives only at noise level and is
+    NOT adopted. `06` stays the maize submission core.
+- A family would become a distinct winner only if the CERES/STICS tie
   breaks — e.g., if an external reveal names the generator, or if a finer
   water-channel splitter (supply vs demand within one crop) separates the
   top two with >0.10 margin.
@@ -111,6 +126,9 @@ portfolio.
 cd sandbox
 python3 fingerprint.py --crops wheat maize --n-cells 1200 --n-workers 16
 python3 fingerprint_match.py          # needs models_library.py
+python3 run_benchmark.py --crops maize --models 06_saturating_vpd 32_maize_flower_plus
+python3 era_gate_maize_flowering.py   # era gate for 32 vs 06 on maize
 ```
 Outputs (gitignored `results/`): `fingerprint_{crop}.md/.json`,
-`fingerprint_match.md`.
+`fingerprint_match.md`, `era_gate_maize_flowering.md`. The maize-heat
+candidates live in `programs/28_maize_flowering_heat.py` … `32_maize_flower_plus.py`.

@@ -444,3 +444,22 @@ priors-submission candidate was built. The robust common set (GENESIS.md §3)
 is carried as design priors only. The strongest *unused* signal: a
 **maize low-threshold flowering heat** term (hdd≥22/26, days ~120–150), which
 if pursued must clear the standard gates first.
+
+### §10 follow-up: maize flowering-heat test (candidates 28–32) — falsified
+
+The strongest single B-track insight was built and gated (1000 maize cells,
+pairwise-majority, era gate `era_gate_maize_flowering.py`):
+
+- **Replacement variants all lose to `06`** (windowed hdd22 `28` −0.210,
+  full-window hdd22 `29` −0.228, windowed count≥26 `30` −0.167, full-window
+  hdd26 `31` −0.233 vs `06` −0.130; pairwise pct-better 37–43%, median
+  δR² −0.03…−0.06). The F2 hdd22 preference was measured as a *lone*
+  regressor; inside `06`'s GDD+VPD+pr package it is redundant with GDD.
+- **Additive variant `32` (`06` + flower-heat term) marginally passes**:
+  pairwise 51.8% better (mean δR² +0.002), era gate PASS (55.0%, mean δR²
+  +0.001). The delta is at noise level and `32` adds a parameter, so **no
+  submission change**; `06` remains the maize core.
+
+Verdict: the strong (replace-heat30) version of the B-track's #1 unused
+insight is not supported; the additive version is not distinguishable from
+`06`. Full detail in `GENESIS.md` §5.
