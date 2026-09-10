@@ -52,6 +52,14 @@ across cells, fitted per location on train years 381–411.
   signal; and the heat→yield response is itself non-stationary (stronger over
   the record). Only `21_yield_ratio`'s multiplicative form posts the best
   *pooled* MSE on maize (0.838 vs 06's 0.936) without winning per-cell median.
+- B-track generator identification (`fingerprint.py` → `fingerprint_match.py`,
+  §10 and `GENESIS.md`): **no distinct winner**. The generator is behaviorally
+  CERES/STICS-like for wheat (precipitation-supply water) but VPD-demand-like
+  for maize — no single library family claims that split. Guardrail verdict:
+  do **not** adopt a priors candidate. Robust common set: dual water channel
+  (pr + VPD), **maize low-threshold flowering heat** (hdd≥22/26, days ~121-150
+  — the strong unused signal), wheat high-threshold grain-fill heat, saturating
+  N, no soil-memory/lag terms.
 
 ## 1. Metric and the baseline identity
 
@@ -399,3 +407,40 @@ years, forecast 420–497, floored at 0, merged onto `sample_submission.csv`):
   zero-CO₂ anchor; `co2` = the mechanism-anchored literature arm that passed
   the pairwise-majority and era-stability gates. The pair brackets the true
   generating model's wheat CO₂ response.
+
+## 10. B-track: behavioral fingerprint of the generating crop model
+
+Ran in the analysis-first mode of the B-track (fingerprint ID, conditional
+adoption). Deliverables: `fingerprint.py`, `models_library.py`,
+`fingerprint_match.py`, `GENESIS.md`; renderable outputs live in the
+gitignored `results/` (`fingerprint_{crop}.md/.json`, `fingerprint_match.md`).
+
+### Method
+Per-location linear predictor families over the 240-day window, fitted by
+closed-form ridge (train 382–411 / test 412–419), 1109 wheat / 1200 maize
+cells; held-out per-cell R² and paired win rates (Wilcoxon). Observables:
+F1 heat-by-30d-slice, F2 heat shape, F3 GDD base, F4 water channel
+(pr / VPD / wb), F5 in-sample CO₂, F6 lag-1 soil memory, F7 pooled N ladder,
+F8 window composition.
+
+### Results (significant contrasts only)
+- **Water channel differs by crop**: wheat is precipitation-supply driven
+  (F4_pr win 0.601, p<1e-9; VPD inert); maize is VPD/evaporative-demand driven
+  (vpd 0.614, wb 0.620, p<1e-12; 76% of cells negative joint VPD beta). This
+  supply-vs-demand split is the decisive observation.
+- **Heat**: maize peaks mid-season in days 121–150 with low-threshold heat
+  (hdd≥22/26 wins vs linear, p<1e-19); wheat is weak, only high-threshold
+  (hdd≥30/34). → Heat terms should be crop-specific.
+- **No lag-1 soil-memory** carryover (lag terms uniformly hurt, p<1e-15).
+- **N is saturating** cross-sectionally (log/sqrt best in both crops).
+- In-sample CO₂ is unidentifiable (level-drift identity, as in §§2,8).
+
+### Matching (guardrail verdict: NO adoption)
+`models_library.py` prior profiles scored 0.755 CERES = 0.755 STICS > 0.645
+APSIM > ... WOFOST 0.475 (no N) > AquaCrop 0.436 (no heat). Because the top
+two tie and win the wheat-vs-maize water split in opposite directions, the
+indistinguishable-set guardrail fires: **no single family is adopted** and no
+priors-submission candidate was built. The robust common set (GENESIS.md §3)
+is carried as design priors only. The strongest *unused* signal: a
+**maize low-threshold flowering heat** term (hdd≥22/26, days ~120–150), which
+if pursued must clear the standard gates first.

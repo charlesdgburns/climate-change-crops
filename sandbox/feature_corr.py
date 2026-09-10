@@ -41,12 +41,17 @@ import argparse
 import os
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from data import load_crop, pick_cells, per_cell_splits
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
+FIGURES_DIR = RESULTS_DIR / "figs"
 
 FEATURES = ["gdd", "prec", "prc_mid", "heat30", "ht", "spell3",
             "vd", "vpd_mean", "water_bal", "lgt", "cum_end", "co2"]
@@ -100,6 +105,44 @@ def pooled_corr(matrices, method="pearson"):
     return C
 
 
+def plot_corr_matrix(P, S, crop, n, figs_dir=None, dpi=140, threshold=0.7):
+    """Annotated heatmap: Pearson lower triangle / Spearman upper triangle."""
+    figs_dir = figs_dir or FIGURES_DIR
+    figs_dir.mkdir(parents=True, exist_ok=True)
+    k = len(FEATURES)
+    M = np.zeros_like(P)
+    mask_up = np.triu(np.ones((k, k), bool), 1)
+    M[~mask_up] = P[~mask_up]
+    M[mask_up] = S[mask_up]
+    np.fill_diagonal(M, np.nan)
+
+    fig, ax = plt.subplots(figsize=(10.5, 8.2))
+    cmap = plt.get_cmap("RdBu_r")
+    im = ax.imshow(M, cmap=cmap, vmin=-1.0, vmax=1.0)
+    for i in range(k):
+        for j in range(k):
+            if i == j:
+                continue
+            v = M[i][j]
+            color = "white" if abs(v) > 0.65 else "black"
+            ax.text(j, i, f"{v:+.2f}", ha="center", va="center",
+                    fontsize=8, color=color)
+            if abs(v) >= threshold:
+                ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False,
+                                           edgecolor="#1a1a1a", lw=2.0))
+    ax.set_xticks(range(k), FEATURES, rotation=45, ha="right", fontsize=9)
+    ax.set_yticks(range(k), FEATURES, fontsize=9)
+    cb = fig.colorbar(im, ax=ax, shrink=0.8)
+    cb.set_label("Pearson (lower) / Spearman (upper)", fontsize=9)
+    ax.set_title(f"Pooled within-cell feature correlations — {crop} "
+                 f"({n} cells; box = |r| ≥ {threshold:g})", fontsize=11)
+    fig.tight_layout()
+    out = figs_dir / f"feature_corr_{crop}.png"
+    fig.savefig(out, dpi=dpi)
+    plt.close(fig)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--crops", nargs="+", choices=["wheat", "maize"],
@@ -126,6 +169,8 @@ def main():
 
         n = len(mats)
         lines = [f"## {crop}  ({n} cells, pooled within-cell)",
+                 f"![feature correlation heatmap](figs/feature_corr_{crop}.png)",
+                 "",
                  f"Pearson (lower triangle) / Spearman (upper triangle) of the "
                  f"year-features (mean-centered per cell, then pooled):",
                  "",
@@ -164,6 +209,8 @@ def main():
                      "construction. A correlated pair only justifies removal if "
                      "a slimmed model passes the held-out gate.")
         sections.append("\n".join(lines))
+        fig_png = plot_corr_matrix(P, S, crop, n, threshold=0.7)
+        print(f"  figure: {fig_png}")
 
     md = ("# Feature cross-correlations (pooled within-cell)\n\n"
           "Year-feature redundancy as seen by the per-location fits. "

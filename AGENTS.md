@@ -39,6 +39,17 @@ Key analysis: `sandbox/ANALYSIS.md` — why per-cell held-out R² is negative (l
 | `submission_baseline_13_06.ipynb` | **Kaggle submission — weather-only arm**: wheat `13`, maize `06`, per-cell closed-form ridge |
 | `submission_co2_24_06.ipynb` | **Kaggle submission — literature-CO₂ arm**: wheat `24` (13-core × fixed saturating CO₂), maize `06`; only the wheat block differs from the baseline arm |
 
+### B-track (generator identification)
+
+`fingerprint.py` + `models_library.py` + `fingerprint_match.py` + `GENESIS.md`
+form the B-track: behavioral fingerprinting of the (undisclosed) generating
+biophysical model. Verdict: no distinct winner (CERES/STICS tie 0.755, APSIM
+in the indistinguishable bucket) → no priors candidate adopted. Robust common
+set: dual water channel (pr supply + VPD demand, crop-specific), maize
+low-threshold flowering heat (hdd≥22/26, days ~121–150), wheat high-threshold
+grain-fill heat, saturating N, no soil-memory terms. Run:
+`cd sandbox && python3 fingerprint.py && python3 fingerprint_match.py`.
+
 ## FreeFunSearch pipeline
 
 `FreeFunSearch/` contains the FunSearch engine (`FunSearch/`) and the crop problem definition (`problems/futurecrop/`). Twenty generations of evolution are configured via `PROBLEM_PROFILE` in `FunSearch/search_loop.py` (min = quick smoke test, full = real run).
